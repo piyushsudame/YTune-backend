@@ -1,0 +1,4 @@
+flask==3.0.2
+ytmusicapi==0.24.1
+yt-dlp==2024.3.10
+gunicorn==23.0.0
