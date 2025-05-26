@@ -70,24 +70,15 @@ def create_app(test_config=None):
         if not query:
             return jsonify({'error': 'No query provided'}), 400
         
-        # Check if the query looks like a YouTube video ID (typically 11 characters)
-        if len(query) == 11 and all(c in 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_' for c in query):
-            # Use the query directly as a video ID
-            video_id = query
-        else:
-            # Use the query to search for a video
-            video_id = get_top_song_video_id(query)
-            if not video_id:
-                return jsonify({'error': 'No video found'}), 404
+        video_id = get_top_song_video_id(query)
+        if not video_id:
+            return jsonify({'error': 'No video found'}), 404
         
-        try:
-            audio_url = get_audio_url(video_id)
-            if not audio_url:
-                return jsonify({'error': 'Could not get audio URL'}), 404
-            
-            return jsonify({'audio_url': audio_url})
-        except Exception as e:
-            return jsonify({'error': f'Error processing request: {str(e)}'}), 500
+        audio_url = get_audio_url(video_id)
+        if not audio_url:
+            return jsonify({'error': 'Could not get audio URL'}), 404
+        
+        return jsonify({'audio_url': audio_url})
     
     # Register blueprints
     app.register_blueprint(ytmusic_bp, url_prefix='/api/ytmusic')

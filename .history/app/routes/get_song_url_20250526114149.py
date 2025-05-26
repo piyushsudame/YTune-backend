@@ -1,9 +1,6 @@
 import json
 from ytmusicapi import YTMusic
 from yt_dlp import YoutubeDL
-from flask import Flask, request, jsonify
-
-app = Flask(__name__)
 
 def get_top_song_video_id(query):
     """
@@ -61,25 +58,6 @@ def get_video_url_from_json():
         print("Error reading song_details.json")
     return None
 
-@app.route('/get-audio-url', methods=['GET'])
-def get_audio_url_endpoint():
-    query = request.args.get('query')
-    if not query:
-        return jsonify({'error': 'Query parameter is required'}), 400
-    
-    video_id = get_top_song_video_id(query)
-    if not video_id:
-        return jsonify({'error': 'Could not find a valid song'}), 404
-    
-    audio_url = get_audio_url(video_id)
-    if not audio_url:
-        return jsonify({'error': 'Failed to extract audio URL'}), 500
-    
-    return jsonify({
-        'video_id': video_id,
-        'audio_url': audio_url
-    })
-
 def main():
     # First try to get URL from song_details.json
     video_url = get_video_url_from_json()
@@ -110,4 +88,4 @@ def main():
             print("Failed to extract audio URL.")
 
 if __name__ == "__main__":
-    app.run(host='0.0.0.0', port=10000)
+    main()
