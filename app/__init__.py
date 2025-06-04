@@ -1,8 +1,15 @@
-from flask import Flask, request, jsonify
+from flask import Flask, jsonify
 from flask_cors import CORS
 import os
 from dotenv import load_dotenv
-import yt_dlp
+import logging
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
 
 def create_app(test_config=None):
     # Load environment variables from .env file if it exists
@@ -32,56 +39,23 @@ def create_app(test_config=None):
     except OSError:
         pass
 
-    @app.route('/api/stream', methods=['POST'])
-    def get_stream_url():
-        data = request.get_json()
-        query = data.get('query')
-        if not query:
-            return jsonify({'error': 'No query provided'}), 400
-
-        try:
-            # Configure yt-dlp options
-            ydl_opts = {
-                'format': 'bestaudio/best',
-                'quiet': True,
-                'no_warnings': True,
-                'extract_flat': True,
-            }
-
-            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-                # If the query is a URL, use it directly
-                if query.startswith(('http://', 'https://')):
-                    info = ydl.extract_info(query, download=False)
-                else:
-                    # Search for the video
-                    search_results = ydl.extract_info(f"ytsearch:{query}", download=False)
-                    if not search_results or not search_results.get('entries'):
-                        return jsonify({'error': 'No results found'}), 404
-                    info = search_results['entries'][0]
-
-                # Get the best audio URL
-                formats = info.get('formats', [])
-                audio_formats = [f for f in formats if f.get('acodec') != 'none' and f.get('vcodec') == 'none']
-                
-                if not audio_formats:
-                    return jsonify({'error': 'No audio format found'}), 404
-
-                # Get the best audio format
-                best_audio = audio_formats[-1]  # Usually the last one is the best quality
-                
-                return jsonify({
-                    'audio_url': best_audio['url'],
-                    'title': info.get('title'),
-                    'duration': info.get('duration'),
-                    'thumbnail': info.get('thumbnail')
-                })
-
-        except Exception as e:
-            return jsonify({'error': f'Error processing request: {str(e)}'}), 500
+    # Register blueprints
+    from app.routes.youtube_routes import youtube_bp
+    app.register_blueprint(youtube_bp)
 
     # Health check endpoint
     @app.route('/ping')
     def ping():
-        return {'status': 'ok'}
+        return jsonify({'status': 'ok'})
+        
+    # Error handlers
+    @app.errorhandler(404)
+    def not_found(e):
+        return jsonify({'error': 'Not found'}), 404
+        
+    @app.errorhandler(500)
+    def server_error(e):
+        logger.error(f"Server error: {str(e)}")
+        return jsonify({'error': 'Internal server error'}), 500
 
     return app
